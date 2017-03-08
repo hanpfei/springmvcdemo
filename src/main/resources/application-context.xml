@@ -47,4 +47,42 @@
     <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
         <property name="basePackage" value="com.hanpfei.dao"/>
     </bean>
+
+    <!-- redis -->
+    <bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <!-- 最大空闲连接数 -->
+        <property name="maxIdle" value="32" />
+        <!-- 初始化连接数 -->
+        <property name="minIdle" value="16" />
+        <!-- 最大连接数 -->
+        <property name="maxTotal" value="256" />
+        <!-- 最大等待时间 -->
+        <property name="maxWaitMillis" value="5000" />
+        <!-- 连接空闲的最小时间，移除空闲链接并保留minidle个 -->
+        <property name="minEvictableIdleTimeMillis" value="300000" />
+        <!-- 空闲链接监测线程检测的每次监测的资源个数 -->
+        <property name="numTestsPerEvictionRun" value="3" />
+        <!-- 空闲链接监测线程检测的周期 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000" />
+        <property name="testOnBorrow" value="true" />
+        <property name="testOnReturn" value="true" />
+        <!-- 是否连接耗尽时阻塞直到超时 -->
+        <property name="blockWhenExhausted" value="false" />
+
+    </bean>
+
+    <bean id="jedis.shardInfo" class="redis.clients.jedis.JedisShardInfo">
+        <constructor-arg name="host" value="${redis.url}" />
+        <constructor-arg name="port" value="${redis.port}" />
+        <!--<property name="password" value="${redis.password}" />-->
+
+    </bean>
+    <bean id="shardedJedisPool" class="redis.clients.jedis.ShardedJedisPool">
+        <constructor-arg name="poolConfig" ref="jedisPoolConfig" />
+        <constructor-arg name="shards">
+            <list>
+                <ref bean="jedis.shardInfo" />
+            </list>
+        </constructor-arg>
+    </bean>
 </beans>

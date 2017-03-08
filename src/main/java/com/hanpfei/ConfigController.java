@@ -2,6 +2,7 @@ package com.hanpfei;
 
 import com.hanpfei.meta.Config;
 import com.hanpfei.meta.ConfigData;
+import com.hanpfei.service.ConfigCacheService;
 import com.hanpfei.service.ConfigService;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
@@ -26,6 +27,9 @@ public class ConfigController {
 
     @Resource
     ConfigService configService;
+
+    @Resource
+    ConfigCacheService configCacheService;
 
     @RequestMapping(value = "/v1/setconfig", method = RequestMethod.POST)
     public @ResponseBody
@@ -56,6 +60,8 @@ public class ConfigController {
             String requestBody = IOUtils.toString(input, "utf-8");
             config.setData(requestBody);
             configService.save(config);
+
+            configCacheService.put(productKey, productKey, 500);
         } catch (Exception e) {
             configData = new ConfigData(ConfigData.RES_CODE_FAILED, ConfigData.MSG_FAILED);
         }
@@ -64,6 +70,7 @@ public class ConfigController {
     }
 
     private List<Config> getConfigForProduct(String productKey) {
+        String result = configCacheService.getConfigItemByProductKey(productKey);
         List<Config> configs = configService.getConfigItemByProductKey(productKey);
         return configs;
     }
