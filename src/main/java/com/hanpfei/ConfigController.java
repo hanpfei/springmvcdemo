@@ -1,10 +1,13 @@
 package com.hanpfei;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.hanpfei.meta.Config;
 import com.hanpfei.meta.ConfigData;
 import com.hanpfei.service.ConfigCacheService;
 import com.hanpfei.service.ConfigService;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -18,6 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.zip.GZIPInputStream;
 
 
@@ -30,6 +34,10 @@ public class ConfigController {
 
     @Resource
     ConfigCacheService configCacheService;
+
+    private void updateCache(String productKey, String platform, String deviceVersion, String appVersion) {
+
+    }
 
     @RequestMapping(value = "/v1/setconfig", method = RequestMethod.POST)
     public @ResponseBody
@@ -70,13 +78,32 @@ public class ConfigController {
     }
 
     private List<Config> getConfigForProduct(String productKey) {
-        String result = configCacheService.getConfigItemByProductKey(productKey);
-        List<Config> configs = configService.getConfigItemByProductKey(productKey);
+        List<Config> configs = null;
+        try {
+            configs = configCacheService.getConfigItemByProductKey(productKey);
+        } catch (Exception e) {
+        }
+
+        if (configs == null || configs.isEmpty()) {
+            configs = configService.getConfigItemByProductKey(productKey);
+        }
+        if (configs != null) {
+            configCacheService.put(productKey, JSON.toJSONString(configs), 120);
+        }
+
         return configs;
     }
 
     private Config getBestFitConfig(List<Config> configDataItems, String deviceVersion,
                                     String platform, String appVersion, String sdkVersion) {
+        if (configDataItems == null || configDataItems.isEmpty()) {
+            return null;
+        }
+        for (Config config : configDataItems) {
+            if (!StringUtils.isEmpty(config.getData())) {
+                return config;
+            }
+        }
         return null;
     }
 
@@ -101,9 +128,10 @@ public class ConfigController {
                         appVersion, sdkVersion);
                 if (configDataItem != null) {
                     String data = configDataItem.getData();
-//                    for (String fieldName : data.keySet()) {
-//                        configData.addData(fieldName, data.get(fieldName));
-//                    }
+                    JSONObject jsonObject = JSONObject.parseObject(data);
+                    for (String fieldName : jsonObject.keySet()) {
+                        configData.addData(fieldName, jsonObject.get(fieldName));
+                    }
                 }
             }
         } catch (Exception e) {

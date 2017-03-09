@@ -14,8 +14,23 @@ public class ConfigService {
     private ConfigDao configDao;
 
     public void save(Config configItem) {
-        configDao.addConfig(configItem.getProduct_key(), configItem.getDevice_version(), configItem.getPlatform(),
-                configItem.getApp_version(), configItem.getSdk_version(), configItem.getData());
+        List<Config> configs = configDao.getConfigByAll(configItem.getProduct_key(), configItem.getDevice_version(),
+                configItem.getPlatform(), configItem.getApp_version(), configItem.getSdk_version());
+        if (configs != null && !configs.isEmpty()) {
+            Config config = configs.get(0);
+            if (!config.getData().equalsIgnoreCase(configItem.getData())) {
+                update(config.getId(), configItem);
+            }
+            if (configs.size() > 1) {
+                for (int i = 1; i < configs.size(); ++ i) {
+                    config = configs.get(i);
+                    configDao.deleteConfig(config.getId());
+                }
+            }
+        } else {
+            configDao.addConfig(configItem.getProduct_key(), configItem.getDevice_version(), configItem.getPlatform(),
+                    configItem.getApp_version(), configItem.getSdk_version(), configItem.getData());
+        }
     }
 
     public void update(long id, Config configItem) {
@@ -34,6 +49,7 @@ public class ConfigService {
     }
 
     public void delete(Integer id) {
+        configDao.deleteConfig(id);
         return;
     }
 }

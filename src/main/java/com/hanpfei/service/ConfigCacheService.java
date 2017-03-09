@@ -1,5 +1,6 @@
 package com.hanpfei.service;
 
+import com.alibaba.fastjson.JSON;
 import com.hanpfei.meta.Config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,13 +33,16 @@ public class ConfigCacheService {
     }
 
 
-    public String getConfigItemByProductKey(String productKey) {
+    public List<Config> getConfigItemByProductKey(String productKey) {
         ShardedJedis jedis = shardedJedisPool.getResource();
-        String result = null;
+        List<Config> configs = null;
         try {
-            return jedis.get(productKey);
+            String result = jedis.get(productKey);
+            configs = JSON.parseArray(result, Config.class);
         } finally {
             shardedJedisPool.returnResourceObject(jedis);
         }
+
+        return configs;
     }
 }
